@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank Battle Online</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #2a2a2a;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* LOGIN */
+        #loginScreen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        .login-box {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 40px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .login-box h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+            text-shadow: 0 0 20px rgba(79,195,247,0.5);
+        }
+        .login-box p { color: #aaa; margin-bottom: 30px; font-size: 14px; }
+        .login-box input {
+            width: 100%;
+            padding: 14px 18px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .login-box input:focus {
+            border-color: #4fc3f7;
+            box-shadow: 0 0 15px rgba(79,195,247,0.3);
+        }
+        .login-box input::placeholder { color: #888; }
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #4fc3f7, #0288d1);
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(79,195,247,0.4);
+        }
+        .login-error { color: #ff5252; font-size: 13px; margin-top: 10px; min-height: 20px; }
+        .register-link {
+            color: #4fc3f7;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 15px;
+            display: block;
+        }
+        .register-link:hover { text-decoration: underline; }
+
+        /* MENU */
+        #mainMenu { display: none; height: 100vh; background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); }
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .coins-display { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: bold; }
+        .coin-icon {
+            width: 30px; height: 30px;
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 0 10px rgba(255,152,0,0.5);
+        }
+        .shop-btn {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #5c6bc0, #3949ab);
+            border: none; border-radius: 10px;
+            color: #fff; font-size: 15px; font-weight: bold;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .shop-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(92,107,192,0.5); }
+        .nickname-display { display: flex; align-items: center; gap: 10px; }
+        .nickname-display input {
+            padding: 8px 14px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: #fff; font-size: 14px;
+            outline: none; width: 150px; text-align: center;
+        }
+        .nickname-display input:focus { border-color: #4fc3f7; }
+        .menu-body { display: flex; height: calc(100vh - 70px); }
+        .mode-panel {
+            width: 220px;
+            background: rgba(0,0,0,0.2);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 20px;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        .mode-panel h3 { color: #aaa; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .mode-btn {
+            padding: 15px 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #fff; font-size: 15px;
+            cursor: pointer; transition: all 0.3s;
+            position: relative; text-align: left;
+        }
+        .mode-btn:hover { background: rgba(255,255,255,0.1); }
+        .mode-btn.active { background: rgba(79,195,247,0.1); border-color: #4fc3f7; }
+        .mode-btn.active::after {
+            content: '';
+            position: absolute; bottom: 0; left: 10%;
+            width: 80%; height: 3px;
+            background: #4caf50; border-radius: 3px 3px 0 0;
+            box-shadow: 0 0 10px rgba(76,175,80,0.5);
+        }
+        .mode-btn .mode-icon { font-size: 20px; margin-right: 10px; }
+        .game-area {
+            flex: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 30px;
+        }
+        .player-display { display: flex; align-items: center; gap: 20px; }
+        .player-card {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 20px 30px;
+            text-align: center;
+            min-width: 140px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .player-card:hover { transform: translateY(-3px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+        .player-card.you { border-color: #4fc3f7; box-shadow: 0 0 20px rgba(79,195,247,0.2); }
+        .player-card .avatar {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px;
+        }
+        .player-card .avatar.blue { background: linear-gradient(135deg, #42a5f5, #1565c0); }
+        .player-card .avatar.red { background: linear-gradient(135deg, #ef5350, #c62828); }
+        .player-card .name { font-size: 14px; color: #ccc; }
+        .player-card .label { font-size: 11px; color: #888; margin-top: 4px; }
+        .remove-btn {
+            position: absolute; top: -8px; right: -8px;
+            width: 24px; height: 24px;
+            background: #f44336; border-radius: 50%;
+            display: none; align-items: center; justify-content: center;
+            font-size: 14px; cursor: pointer; border: 2px solid #fff;
+        }
+        .player-card:hover .remove-btn { display: flex; }
+        .vs-text { font-size: 24px; font-weight: bold; color: #666; }
+        .play-btn {
+            padding: 20px 80px;
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            border: none; border-radius: 16px;
+            color: #fff; font-size: 28px; font-weight: bold;
+            cursor: pointer; transition: all 0.3s;
+            text-transform: uppercase; letter-spacing: 3px;
+            box-shadow: 0 10px 40px rgba(76,175,80,0.3);
+        }
+        .play-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 50px rgba(76,175,80,0.5); }
+        .play-btn:disabled { background: #666; cursor: not-allowed; transform: none; }
+        .room-buttons { display: flex; gap: 15px; margin-top: 20px; }
+        .room-btn {
+            padding: 12px 25px; border: none; border-radius: 10px;
+            font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+        }
+        .create-room-btn { background: linear-gradient(135deg, #9c27b0, #7b1fa2); color: #fff; }
+        .join-room-btn { background: linear-gradient(135deg, #ff9800, #f57c00); color: #fff; }
+        .room-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+        .room-code-display {
+            background: rgba(156,39,176,0.2);
+            border: 2px solid #9c27b0;
+            border-radius: 12px; padding: 20px;
+            text-align: center; margin-top: 20px; display: none;
+        }
+        .room-code-display.active { display: block; animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 10px rgba(156,39,176,0.3); }
+            50% { box-shadow: 0 0 25px rgba(156,39,176,0.6); }
+        }
+        .room-code-label { font-size: 13px; color: #aaa; margin-bottom: 8px; }
+        .room-code {
+            font-size: 36px; font-weight: bold; color: #9c27b0;
+            letter-spacing: 5px; font-family: 'Courier New', monospace;
+        }
+        .room-timer { font-size: 14px; color: #ff9800; margin-top: 10px; }
+        .waiting-text { color: #4fc3f7; font-size: 16px; margin-top: 10px; }
+
+        /* SEARCHING */
+        #searchingOverlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100;
+            justify-content: center; align-items: center; flex-direction: column; gap: 20px;
+        }
+        .search-spinner {
+            width: 60px; height: 60px;
+            border: 4px solid rgba(79,195,247,0.2);
+            border-top-color: #4fc3f7; border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .search-text { font-size: 20px; color: #ccc; }
+        .search-cancel {
+            padding: 10px 30px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px; color: #fff;
+            cursor: pointer; font-size: 14px; transition: all 0.3s;
+        }
+        .search-cancel:hover { background: rgba(255,255,255,0.2); }
+
+        /* SHOP */
+        #shopModal {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 200;
+            justify-content: center; align-items: center;
+        }
+        .shop-content {
+            background: #2d2d44; border-radius: 20px; padding: 40px;
+            text-align: center; max-width: 400px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .shop-content h2 { font-size: 24px; margin-bottom: 20px; color: #4fc3f7; }
+        .shop-content p { color: #aaa; font-size: 16px; margin-bottom: 25px; }
+        .shop-close {
+            padding: 10px 30px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px; color: #fff; cursor: pointer; font-size: 14px;
+        }
+
+        /* JOIN ROOM */
+        #joinRoomModal {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 200;
+            justify-content: center; align-items: center;
+        }
+        .join-room-content {
+            background: #2d2d44; border-radius: 20px; padding: 40px;
+            text-align: center; max-width: 400px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .join-room-content h2 { font-size: 24px; margin-bottom: 20px; color: #ff9800; }
+        .join-room-content input {
+            width: 100%; padding: 14px; margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+            background: rgba(255,255,255,0.08); color: #fff;
+            font-size: 24px; text-align: center;
+            letter-spacing: 5px; font-family: 'Courier New', monospace;
+        }
+        .join-room-content input:focus { outline: none; border-color: #ff9800; }
+        .join-room-buttons { display: flex; gap: 10px; justify-content: center; }
+        .join-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border: none; border-radius: 10px;
+            color: #fff; font-size: 15px; font-weight: bold; cursor: pointer;
+        }
+        .cancel-btn {
+            padding: 12px 30px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px; color: #fff; font-size: 15px; cursor: pointer;
+        }
+
+        /* GAME */
+        #gameScreen {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: #fff; z-index: 50;
+        }
+        #gameCanvas { width: 100%; height: 100%; display: block; }
+        #gameHud {
+            display: none; position: fixed; top: 10px; left: 50%;
+            transform: translateX(-50%); z-index: 60;
+            background: rgba(0,0,0,0.7); padding: 8px 20px;
+            border-radius: 10px; font-size: 14px; color: #fff;
+        }
+        #gameOverOverlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 150;
+            justify-content: center; align-items: center; flex-direction: column; gap: 20px;
+        }
+        .game-over-text { font-size: 48px; font-weight: bold; }
+        .game-over-text.win { color: #4caf50; text-shadow: 0 0 30px rgba(76,175,80,0.5); }
+        .game-over-text.lose { color: #f44336; text-shadow: 0 0 30px rgba(244,67,54,0.5); }
+        .game-over-reward { font-size: 20px; color: #ff9800; }
+        .game-over-btn {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #4fc3f7, #0288d1);
+            border: none; border-radius: 12px;
+            color: #fff; font-size: 18px; font-weight: bold;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .game-over-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(79,195,247,0.4); }
+        .connection-status {
+            position: fixed; top: 10px; right: 10px;
+            padding: 8px 15px; background: rgba(0,0,0,0.7);
+            border-radius: 8px; font-size: 13px; z-index: 100;
+        }
+        .connection-status.connected { color: #4caf50; }
+        .connection-status.disconnected { color: #f44336; }
+        .connection-status.waiting { color: #ff9800; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN -->
+    <div id="loginScreen">
+        <div class="login-box">
+            <h1>🎮 Tank Battle</h1>
+            <p>Войди в аккаунт чтобы начать игру</p>
+            <input type="text" id="loginUsername" placeholder="Логин">
+            <input type="password" id="loginPassword" placeholder="Пароль">
+            <button class="login-btn" onclick="handleLogin()">Войти</button>
+            <div class="login-error" id="loginError"></div>
+            <span class="register-link" onclick="toggleRegister()" id="registerLink">Нет аккаунта? Зарегистрироваться</span>
+        </div>
+    </div>
+
+    <!-- MAIN MENU -->
+    <div id="mainMenu">
+        <div class="menu-header">
+            <div class="coins-display">
+                <div class="coin-icon"></div>
+                <span id="coinsCount">0</span>
+            </div>
+            <button class="shop-btn" onclick="openShop()">🛒 Магазин</button>
+            <div class="nickname-display">
+                <span style="color:#aaa; font-size:13px;">Ник:</span>
+                <input type="text" id="nicknameInput" placeholder="Player_Name" maxlength="15">
+            </div>
+        </div>
+        <div class="menu-body">
+            <div class="mode-panel">
+                <h3>Режим игры</h3>
+                <button class="mode-btn active" id="modeSolo" onclick="selectMode('solo')">
+                    <span class="mode-icon">👤</span> Одиночный
+                </button>
+                <button class="mode-btn" id="modeFriend" onclick="selectMode('friend')">
+                    <span class="mode-icon"></span> С другом
+                </button>
+            </div>
+            <div class="game-area">
+                <div class="player-display">
+                    <div class="player-card you">
+                        <div class="avatar blue">🔵</div>
+                        <div class="name" id="menuPlayerName">Player</div>
+                        <div class="label">Ты</div>
+                    </div>
+                    <div class="vs-text" id="vsText" style="display:none;">VS</div>
+                    <div class="player-card" id="enemyCard" style="display:none;">
+                        <div class="remove-btn" onclick="removeFriend()">×</div>
+                        <div class="avatar red">🔴</div>
+                        <div class="name" id="enemyName">Ожидание...</div>
+                        <div class="label">Противник</div>
+                    </div>
+                </div>
+                <div class="room-code-display" id="roomCodeDisplay">
+                    <div class="room-code-label">Код комнаты (отправь другу):</div>
+                    <div class="room-code" id="roomCode">-----</div>
+                    <div class="room-timer" id="roomTimer">Осталось: 5:00</div>
+                    <div class="waiting-text">Ожидание подключения...</div>
+                </div>
+                <div class="room-buttons" id="roomButtons" style="display:none;">
+                    <button class="room-btn create-room-btn" onclick="createRoom()">🏠 Создать комнату</button>
+                    <button class="room-btn join-room-btn" onclick="openJoinRoom()"> Войти в комнату</button>
+                </div>
+                <button class="play-btn" id="playBtn" onclick="startSearch()">ИГРАТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCHING -->
+    <div id="searchingOverlay">
+        <div class="search-spinner"></div>
+        <div class="search-text" id="searchText">Поиск противника...</div>
+        <button class="search-cancel" onclick="cancelSearch()">Отмена</button>
+    </div>
+
+    <!-- SHOP -->
+    <div id="shopModal">
+        <div class="shop-content">
+            <h2> Магазин</h2>
+            <p>Пока что ничего не завезли. Заходи позже!</p>
+            <button class="shop-close" onclick="closeShop()">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- JOIN ROOM -->
+    <div id="joinRoomModal">
+        <div class="join-room-content">
+            <h2>🔗 Войти в комнату</h2>
+            <input type="text" id="roomCodeInput" placeholder="00000" maxlength="5">
+            <div class="join-room-buttons">
+                <button class="join-btn" onclick="joinRoom()">Войти</button>
+                <button class="cancel-btn" onclick="closeJoinRoom()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME -->
+    <div id="gameScreen">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <div id="gameHud">
+        <span id="hudInfo">HP: 100 | Перезарядка: готова</span>
+    </div>
+    <div class="connection-status disconnected" id="connectionStatus">● Не подключено</div>
+    <div id="gameOverOverlay">
+        <div class="game-over-text" id="gameOverText">ПОБЕДА!</div>
+        <div class="game-over-reward" id="gameOverReward">+5 🪙 монет</div>
+        <button class="game-over-btn" onclick="backToMenu()">В меню</button>
+    </div>
+
+    <script>
+        // ===== ACCOUNTS =====
+        let accounts = JSON.parse(localStorage.getItem('tankAccounts') || '{}');
+        let currentUser = null;
+        let isRegistering = false;
+
+        function toggleRegister() {
+            isRegistering = !isRegistering;
+            const link = document.getElementById('registerLink');
+            const btn = document.querySelector('.login-btn');
+            const title = document.querySelector('.login-box h1');
+            if (isRegistering) {
+                link.textContent = 'Уже есть аккаунт? Войти';
+                btn.textContent = 'Зарегистрироваться';
+                title.textContent = '📝 Регистрация';
+            } else {
+                link.textContent = 'Нет аккаунта? Зарегистрироваться';
+                btn.textContent = 'Войти';
+                title.textContent = '🎮 Tank Battle';
+            }
+        }
+
+        function handleLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const error = document.getElementById('loginError');
+            if (!username || !password) { error.textContent = 'Заполни все поля!'; return; }
+            if (isRegistering) {
+                if (accounts[username]) { error.textContent = 'Такой логин уже занят!'; return; }
+                accounts[username] = { password: password, coins: 0, nickname: username };
+                localStorage.setItem('tankAccounts', JSON.stringify(accounts));
+                error.style.color = '#4caf50';
+                error.textContent = 'Аккаунт создан!';
+                setTimeout(() => { isRegistering = false; toggleRegister(); performLogin(username, password); }, 1000);
+            } else {
+                if (!accounts[username]) { error.textContent = 'Аккаунт не найден!'; return; }
+                if (accounts[username].password !== password) { error.textContent = 'Неверный пароль!'; return; }
+                performLogin(username, password);
+            }
+        }
+
+        function performLogin(username, password) {
+            currentUser = username;
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainMenu').style.display = 'block';
+            const acc = accounts[username];
+            document.getElementById('coinsCount').textContent = acc.coins;
+            document.getElementById('nicknameInput').value = acc.nickname || username;
+            document.getElementById('menuPlayerName').textContent = acc.nickname || username;
+            initPeerJS();
+        }
+
+        // ===== PEERJS =====
+        let peer = null, conn = null;
+        let roomCode = null, roomTimer = null;
+        let isHost = false, friendConnected = false;
+
+        function initPeerJS() {
+            peer = new Peer('tank_' + Math.random().toString(36).substr(2, 9), {
+                host: '0.peerjs.com', port: 443, secure: true
+            });
+            peer.on('open', (id) => {
+                console.log('Peer ID:', id);
+                updateConnectionStatus('connected', '● Подключено к сети');
+            });
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupConnection();
+                friendConnected = true;
+                document.getElementById('enemyName').textContent = 'Игрок подключился!';
+                updateConnectionStatus('connected', '● Игрок подключен');
+                if (currentMode === 'friend') {
+                    document.getElementById('playBtn').disabled = false;
+                    document.getElementById('playBtn').textContent = 'ИГРАТЬ';
+                }
+            });
+            peer.on('error', (err) => {
+                console.error('PeerJS error:', err);
+                updateConnectionStatus('disconnected', '● Ошибка подключения');
+            });
+        }
+
+        function setupConnection() {
+            conn.on('open', () => {
+                updateConnectionStatus('connected', '● Подключено');
+                if (!isHost) {
+                    document.getElementById('vsText').style.display = 'block';
+                    document.getElementById('enemyCard').style.display = 'block';
+                    document.getElementById('enemyName').textContent = 'Хост';
+                    document.getElementById('roomButtons').style.display = 'none';
+                    updateConnectionStatus('connected', '● В комнате');
+                }
+            });
+            conn.on('data', (data) => handleGameData(data));
+            conn.on('close', () => {
+                friendConnected = false;
+                updateConnectionStatus('disconnected', '● Игрок отключился');
+                if (gameRunning) endGame(false, true);
+            });
+        }
+
+        function handleGameData(data) {
+            if (data.type === 'position' && enemy) {
+                enemy.x = data.x; enemy.y = data.y; enemy.angle = data.angle;
+            } else if (data.type === 'shoot' && enemy) {
+                const speed = 8;
+                bullets.push({
+                    x: data.x, y: data.y,
+                    vx: Math.cos(data.angle) * speed,
+                    vy: Math.sin(data.angle) * speed,
+                    radius: 5, owner: 'enemy', color: '#ef5350'
+                });
+            } else if (data.type === 'gameStart') {
+                startGameAsClient();
+            }
+        }
+
+        function generateRoomCode() {
+            let code;
+            do { code = Math.floor(10000 + Math.random() * 90000).toString(); }
+            while (usedRoomCodes.has(code));
+            usedRoomCodes.add(code);
+            return code;
+        }
+        let usedRoomCodes = new Set();
+
+        function createRoom() {
+            if (!peer || !peer.id) { alert('Ошибка подключения. Обнови страницу.'); return; }
+            roomCode = generateRoomCode();
+            isHost = true;
+            document.getElementById('roomCodeDisplay').classList.add('active');
+            document.getElementById('roomCode').textContent = roomCode;
+            document.getElementById('vsText').style.display = 'block';
+            document.getElementById('enemyCard').style.display = 'block';
+            document.getElementById('roomButtons').style.display = 'none';
+            let timeLeft = 300;
+            roomTimer = setInterval(() => {
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+                document.getElementById('roomTimer').textContent = `Осталось: ${m}:${s.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) { clearInterval(roomTimer); alert('Время вышло!'); resetRoom(); }
+            }, 1000);
+            updateConnectionStatus('waiting', '● Ожидание игрока...');
+        }
+
+        function openJoinRoom() {
+            document.getElementById('joinRoomModal').style.display = 'flex';
+            document.getElementById('roomCodeInput').value = '';
+            document.getElementById('roomCodeInput').focus();
+        }
+        function closeJoinRoom() { document.getElementById('joinRoomModal').style.display = 'none'; }
+
+        function joinRoom() {
+            const code = document.getElementById('roomCodeInput').value.trim();
+            if (code.length !== 5 || !/^\d+$/.test(code)) { alert('Введи 5 цифр!'); return; }
+            // Try to find the host by iterating possible peer IDs
+            // Since we can't directly map code to peer ID, we'll use a different approach
+            // The host's peer ID contains the room code
+            alert('Попроси хоста создать комнату и отправить код. Подключение через код комнаты работает только если хост использует тот же код как часть ID.\n\nСейчас просто нажми "Создать комнату" на одном устройстве, а на другом введи код.');
+            
+            // Actually let's make it work: host peer ID = 'tank_room_' + code
+            // But we already generated random peer IDs...
+            // Let's fix: when creating room, we create a new peer with code-based ID
+            closeJoinRoom();
+            
+            // For now, let's use a simpler approach:
+            // The host will share their full peer ID
+            // Actually, let's just make the room code work by having the host listen on a specific ID
+        }
+
+        // Let me fix the room system properly
+        let roomPeer = null;
+
+        function createRoom() {
+            if (!peer || !peer.id) { alert('Ошибка подключения. Обнови страницу.'); return; }
+            roomCode = generateRoomCode();
+            isHost = true;
+            
+            // Create a new peer with room code as ID
+            const roomPeerId = 'tankroom_' + roomCode;
+            roomPeer = new Peer(roomPeerId, {
+                host: '0.peerjs.com', port: 443, secure: true
+            });
+            
+            roomPeer.on('open', () => {
+                console.log('Room peer open:', roomPeerId);
+            });
+            
+            roomPeer.on('connection', (connection) => {
+                conn = connection;
+                setupConnection();
+                friendConnected = true;
+                document.getElementById('enemyName').textContent = 'Игрок подключился!';
+                updateConnectionStatus('connected', '● Игрок подключен');
+                document.getElementById('playBtn').disabled = false;
+                document.getElementById('playBtn').textContent = 'ИГРАТЬ';
+            });
+            
+            roomPeer.on('error', (err) => {
+                console.error('Room peer error:', err);
+                if (err.type === 'unavailable-id') {
+                    alert('Этот код уже используется! Попробуй другой.');
+                    roomCode = generateRoomCode();
+                    createRoom();
+                }
+            });
+            
+            document.getElementById('roomCodeDisplay').classList.add('active');
+            document.getElementById('roomCode').textContent = roomCode;
+            document.getElementById('vsText').style.display = 'block';
+            document.getElementById('enemyCard').style.display = 'block';
+            document.getElementById('roomButtons').style.display = 'none';
+            
+            let timeLeft = 300;
+            roomTimer = setInterval(() => {
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+                document.getElementById('roomTimer').textContent = `Осталось: ${m}:${s.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) { clearInterval(roomTimer); alert('Время вышло!'); resetRoom(); }
+            }, 1000);
+            updateConnectionStatus('waiting', '● Ожидание игрока...');
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('roomCodeInput').value.trim();
+            if (code.length !== 5 || !/^\d+$/.test(code)) { alert('Введи 5 цифр!'); return; }
+            
+            const hostPeerId = 'tankroom_' + code;
+            conn = peer.connect(hostPeerId);
+            isHost = false;
+            setupConnection();
+            closeJoinRoom();
+            updateConnectionStatus('waiting', '● Подключение к комнате...');
+            
+            setTimeout(() => {
+                if (!conn || !conn.open) {
+                    alert('Не удалось подключиться. Проверь код!');
+                    updateConnectionStatus('disconnected', '● Не подключено');
+                }
+            }, 5000);
+        }
+
+        function removeFriend() {
+            if (conn) conn.close();
+            resetRoom();
+        }
+
+        function resetRoom() {
+            clearInterval(roomTimer);
+            if (roomPeer) { roomPeer.destroy(); roomPeer = null; }
+            roomCode = null; isHost = false; friendConnected = false;
+            document.getElementById('roomCodeDisplay').classList.remove('active');
+            document.getElementById('vsText').style.display = 'none';
+            document.getElementById('enemyCard').style.display = 'none';
+            document.getElementById('roomButtons').style.display = 'flex';
+            document.getElementById('enemyName').textContent = 'Ожидание...';
+            updateConnectionStatus('disconnected', '● Не подключено');
+        }
+
+        // ===== MENU =====
+        let currentMode = 'solo';
+
+        function selectMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeSolo').classList.toggle('active', mode === 'solo');
+            document.getElementById('modeFriend').classList.toggle('active', mode === 'friend');
+            const roomButtons = document.getElementById('roomButtons');
+            const playBtn = document.getElementById('playBtn');
+            if (mode === 'solo') {
+                roomButtons.style.display = 'none';
+                playBtn.disabled = false;
+                playBtn.textContent = 'ИГРАТЬ';
+                resetRoom();
+            } else {
+                roomButtons.style.display = 'flex';
+                if (!friendConnected) {
+                    playBtn.disabled = true;
+                    playBtn.textContent = 'ОЖИДАНИЕ ИГРОКА';
+                } else {
+                    playBtn.disabled = false;
+                    playBtn.textContent = 'ИГРАТЬ';
+                }
+            }
+        }
+
+        function openShop() { document.getElementById('shopModal').style.display = 'flex'; }
+        function closeShop() { document.getElementById('shopModal').style.display = 'none'; }
+
+        // ===== SEARCH =====
+        let searchTimeout = null;
+
+        function startSearch() {
+            const nickname = document.getElementById('nicknameInput').value.trim();
+            if (nickname) {
+                accounts[currentUser].nickname = nickname;
+                localStorage.setItem('tankAccounts', JSON.stringify(accounts));
+                document.getElementById('menuPlayerName').textContent = nickname;
+            }
+            if (currentMode === 'friend' && !friendConnected) { alert('Дождись подключения игрока!'); return; }
+            document.getElementById('searchingOverlay').style.display = 'flex';
+            document.getElementById('searchText').textContent = currentMode === 'solo' ? 'Поиск противника...' : 'Подготовка к игре...';
+            const delay = 2000 + Math.random() * 2000;
+            searchTimeout = setTimeout(() => {
+                document.getElementById('searchingOverlay').style.display = 'none';
+                if (currentMode === 'friend' && isHost) {
+                    if (conn && conn.open) conn.send({ type: 'gameStart' });
+                    startGameAsHost();
+                } else if (currentMode === 'friend' && !isHost) {
+                    startGameAsClient();
+                } else {
+                    startGame();
+                }
+            }, delay);
+        }
+
+        function cancelSearch() { clearTimeout(searchTimeout); document.getElementById('searchingOverlay').style.display = 'none'; }
+
+        function updateConnectionStatus(status, text) {
+            const el = document.getElementById('connectionStatus');
+            el.className = 'connection-status ' + status;
+            el.textContent = text;
+        }
+
+        // ===== GAME =====
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let gameRunning = false, animFrame = null;
+        let player, enemy, bullets, keys, mousePos, gameOver, isClient = false;
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+        function startGameAsHost() { isClient = false; startGame(); }
+        function startGameAsClient() { isClient = true; startGame(); }
+
+        function startGame() {
+            document.getElementById('gameScreen').style.display = 'block';
+            document.getElementById('gameHud').style.display = 'block';
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            player = {
+                x: isClient ? cx + 200 : cx - 200, y: cy,
+                radius: 25, hp: 100, maxHp: 100, speed: 3.5,
+                angle: isClient ? Math.PI : 0,
+                cooldown: 0, cooldownMax: 60,
+                color: isClient ? '#ef5350' : '#42a5f5',
+                colorDark: isClient ? '#c62828' : '#1565c0'
+            };
+            enemy = {
+                x: isClient ? cx - 200 : cx + 200, y: cy,
+                radius: 25, hp: 100, maxHp: 100, speed: 3.5,
+                angle: isClient ? 0 : Math.PI,
+                cooldown: 0, cooldownMax: 60,
+                color: isClient ? '#42a5f5' : '#ef5350',
+                colorDark: isClient ? '#1565c0' : '#c62828'
+            };
+            bullets = []; keys = {}; mousePos = { x: cx, y: cy };
+            gameOver = false; gameRunning = true;
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            canvas.addEventListener('mousemove', onMouseMove);
+            canvas.addEventListener('mousedown', onMouseDown);
+            canvas.addEventListener('contextmenu', e => e.preventDefault());
+            canvas.style.cursor = 'crosshair';
+            gameLoop();
+        }
+
+        function onKeyDown(e) { keys[e.key.toLowerCase()] = true; }
+        function onKeyUp(e) { keys[e.key.toLowerCase()] = false; }
+        function onMouseMove(e) { mousePos.x = e.clientX; mousePos.y = e.clientY; }
+        function onMouseDown(e) {
+            if (e.button === 0 && gameRunning && !gameOver) {
+                if (currentMode === 'friend' && conn && conn.open) {
+                    conn.send({
+                        type: 'shoot',
+                        x: player.x + Math.cos(player.angle) * (player.radius + 15),
+                        y: player.y + Math.sin(player.angle) * (player.radius + 15),
+                        angle: player.angle
+                    });
+                }
+                playerShoot();
+            }
+        }
+
+        function playerShoot() {
+            if (player.cooldown <= 0) {
+                const speed = 8;
+                bullets.push({
+                    x: player.x + Math.cos(player.angle) * (player.radius + 15),
+                    y: player.y + Math.sin(player.angle) * (player.radius + 15),
+                    vx: Math.cos(player.angle) * speed,
+                    vy: Math.sin(player.angle) * speed,
+                    radius: 5, owner: 'player', color: player.color
+                });
+                player.cooldown = player.cooldownMax;
+            }
+        }
+
+        function update() {
+            if (gameOver) return;
+            if (currentMode === 'friend') {
+                let dx = 0, dy = 0;
+                if (keys['w'] || keys['ц']) dy -= 1;
+                if (keys['s'] || keys['ы']) dy += 1;
+                if (keys['a'] || keys['ф']) dx -= 1;
+                if (keys['d'] || keys['в']) dx += 1;
+                if (dx !== 0 || dy !== 0) {
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    dx /= len; dy /= len;
+                    player.x += dx * player.speed;
+                    player.y += dy * player.speed;
+                }
+                player.x = Math.max(30, Math.min(canvas.width - 30, player.x));
+                player.y = Math.max(30, Math.min(canvas.height - 30, player.y));
+                player.angle = Math.atan2(mousePos.y - player.y, mousePos.x - player.x);
+                if (conn && conn.open) {
+                    conn.send({ type: 'position', x: player.x, y: player.y, angle: player.angle });
+                }
+            } else {
+                // Solo AI
+                const dx = player.x - enemy.x, dy = player.y - enemy.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                enemy.angle = Math.atan2(dy, dx);
+                if (dist < 200) { enemy.x -= (dx/dist)*enemy.speed; enemy.y -= (dy/dist)*enemy.speed; }
+                else if (dist > 400) { enemy.x += (dx/dist)*enemy.speed; enemy.y += (dy/dist)*enemy.speed; }
+                enemy.x = Math.max(50, Math.min(canvas.width-50, enemy.x));
+                enemy.y = Math.max(50, Math.min(canvas.height-50, enemy.y));
+                if (dist < 500 && Math.random() < 0.02 && enemy.cooldown <= 0) {
+                    const speed = 7, inaccuracy = (Math.random()-0.5)*0.3;
+                    const angle = enemy.angle + inaccuracy;
+                    bullets.push({
+                        x: enemy.x + Math.cos(angle)*(enemy.radius+15),
+                        y: enemy.y + Math.sin(angle)*(enemy.radius+15),
+                        vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+                        radius: 5, owner: 'enemy', color: '#ef5350'
+                    });
+                    enemy.cooldown = enemy.cooldownMax;
+                }
+                let dx2 = 0, dy2 = 0;
+                if (keys['w'] || keys['ц']) dy2 -= 1;
+                if (keys['s'] || keys['ы']) dy2 += 1;
+                if (keys['a'] || keys['ф']) dx2 -= 1;
+                if (keys['d'] || keys['в']) dx2 += 1;
+                if (dx2 !== 0 || dy2 !== 0) {
+                    const len = Math.sqrt(dx2*dx2+dy2*dy2);
+                    dx2/=len; dy2/=len;
+                    player.x += dx2*player.speed; player.y += dy2*player.speed;
+                }
+                player.x = Math.max(30, Math.min(canvas.width-30, player.x));
+                player.y = Math.max(30, Math.min(canvas.height-30, player.y));
+                player.angle = Math.atan2(mousePos.y-player.y, mousePos.x-player.x);
+            }
+            if (player.cooldown > 0) player.cooldown--;
+            if (enemy.cooldown > 0) enemy.cooldown--;
+            for (let i = bullets.length-1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx; b.y += b.vy;
+                if (b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) { bullets.splice(i,1); continue; }
+                const target = b.owner === 'player' ? enemy : player;
+                const dist = Math.sqrt((b.x-target.x)**2 + (b.y-target.y)**2);
+                if (dist < target.radius + b.radius) {
+                    target.hp -= 20; bullets.splice(i,1);
+                    if (target.hp <= 0) { target.hp = 0; endGame(target === enemy); }
+                }
+            }
+            const cdText = player.cooldown > 0 ? `${(player.cooldown/60).toFixed(1)}s` : 'Готово!';
+            document.getElementById('hudInfo').textContent = `HP: ${player.hp}/${player.maxHp} | Перезарядка: ${cdText}`;
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+            for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+        }
+
+        function drawTank(tank, isPlayer) {
+            ctx.save(); ctx.translate(tank.x, tank.y); ctx.rotate(tank.angle);
+            const gradient = ctx.createRadialGradient(0,0,tank.radius*0.3,0,0,tank.radius);
+            gradient.addColorStop(0, tank.color); gradient.addColorStop(1, tank.colorDark);
+            ctx.beginPath(); ctx.arc(0,0,tank.radius,0,Math.PI*2);
+            ctx.fillStyle = gradient; ctx.fill();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath(); ctx.arc(0,0,tank.radius*0.6,0,Math.PI*2);
+            ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
+            ctx.fillStyle = '#333'; ctx.fillRect(tank.radius*0.3,-4,tank.radius+10,8);
+            ctx.fillStyle = '#222'; ctx.fillRect(tank.radius+5,-5,8,10);
+            ctx.restore();
+            if (isPlayer) {
+                const bw=50, bh=6, bx=tank.x-bw/2, by=tank.y-tank.radius-20;
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
+                const hpR = tank.hp/tank.maxHp;
+                ctx.fillStyle = hpR>0.5?'#4caf50':hpR>0.25?'#ff9800':'#f44336';
+                ctx.fillRect(bx,by,bw*hpR,bh);
+                if (tank.cooldown > 0) {
+                    ctx.fillStyle = 'rgba(255,152,0,0.8)';
+                    ctx.fillRect(bx,by+bh+3,bw*(tank.cooldown/tank.cooldownMax),4);
+                } else {
+                    ctx.fillStyle = 'rgba(76,175,80,0.8)';
+                    ctx.fillRect(bx,by+bh+3,bw,4);
+                }
+            }
+        }
+
+        function drawBullets() {
+            bullets.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x,b.y,b.radius,0,Math.PI*2);
+                ctx.fillStyle = b.color; ctx.fill();
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke();
+                ctx.beginPath(); ctx.arc(b.x,b.y,b.radius+3,0,Math.PI*2);
+                ctx.fillStyle = b.owner==='player'?'rgba(66,165,245,0.3)':'rgba(239,83,80,0.3)';
+                ctx.fill();
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            drawGrid(); drawBullets();
+            drawTank(enemy, false); drawTank(player, true);
+            if (!gameOver) {
+                ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(mousePos.x-12,mousePos.y); ctx.lineTo(mousePos.x+12,mousePos.y);
+                ctx.moveTo(mousePos.x,mousePos.y-12); ctx.lineTo(mousePos.x,mousePos.y+12);
+                ctx.stroke();
+                ctx.beginPath(); ctx.arc(mousePos.x,mousePos.y,6,0,Math.PI*2);
+                ctx.strokeStyle = 'rgba(255,0,0,0.5)'; ctx.stroke();
+            }
+        }
+
+        function gameLoop() { if (!gameRunning) return; update(); draw(); animFrame = requestAnimationFrame(gameLoop); }
+
+        function endGame(playerWon, disconnected = false) {
+            gameOver = true; gameRunning = false; cancelAnimationFrame(animFrame);
+            setTimeout(() => {
+                document.getElementById('gameScreen').style.display = 'none';
+                document.getElementById('gameHud').style.display = 'none';
+                document.getElementById('gameOverOverlay').style.display = 'flex';
+                const textEl = document.getElementById('gameOverText');
+                const rewardEl = document.getElementById('gameOverReward');
+                if (disconnected) {
+                    textEl.textContent = ' ИГРОК ОТКЛЮЧИЛСЯ';
+                    textEl.className = 'game-over-text lose';
+                    rewardEl.textContent = 'Игра прервана';
+                } else if (playerWon) {
+                    textEl.textContent = ' ПОБЕДА!';
+                    textEl.className = 'game-over-text win';
+                    rewardEl.textContent = '+5 🪙 монет';
+                    accounts[currentUser].coins += 5;
+                    localStorage.setItem('tankAccounts', JSON.stringify(accounts));
+                } else {
+                    textEl.textContent = '💀 ПОРАЖЕНИЕ';
+                    textEl.className = 'game-over-text lose';
+                    rewardEl.textContent = 'Монеты не получены';
+                }
+            }, 1500);
+        }
+
+        function backToMenu() {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('gameHud').style.display = 'none';
+            document.getElementById('mainMenu').style.display = 'block';
+            document.getElementById('coinsCount').textContent = accounts[currentUser].coins;
+            document.removeEventListener('keydown', onKeyDown);
+            document.removeEventListener('keyup', onKeyUp);
+            canvas.removeEventListener('mousemove', onMouseMove);
+            canvas.removeEventListener('mousedown', onMouseDown);
+            canvas.style.cursor = 'default';
+            if (currentMode === 'friend') {
+                if (conn) { conn.close(); conn = null; }
+                friendConnected = false; resetRoom();
+            }
+        }
+
+        document.getElementById('loginPassword').addEventListener('keypress', e => { if (e.key==='Enter') handleLogin(); });
+        document.getElementById('loginUsername').addEventListener('keypress', e => { if (e.key==='Enter') document.getElementById('loginPassword').focus(); });
+        document.getElementById('roomCodeInput').addEventListener('keypress', e => { if (e.key==='Enter') joinRoom(); });
+    </script>
+</body>
+</html>
